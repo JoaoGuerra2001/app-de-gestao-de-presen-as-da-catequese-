@@ -1,0 +1,7 @@
+{
+  "name": "Copy of Portal Catequese Digital - S. Simão",
+  "description": "Dashboard administrativo completo para gestão de catequese na Paróquia de S. Simão.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
