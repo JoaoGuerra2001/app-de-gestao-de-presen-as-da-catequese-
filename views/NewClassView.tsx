@@ -22,13 +22,29 @@ const NewClassView: React.FC<Props> = ({ onBack }) => {
   const [catechistSearch, setCatechistSearch] = useState(''); 
   const currentUser = backend.getCurrentUser();
 
+  const loadCatechists = async () => {
+    const users = await backend.listUsersForAssignment();
+    setAvailableCatechists(users);
+  };
+
   useEffect(() => {
-    backend.listUsersForAssignment().then(users => {
-      setAvailableCatechists(users);
-      if (currentUser) {
-        setSelectedCatechistIds([currentUser.id]);
-      }
-    });
+    loadCatechists();
+    if (currentUser) {
+      setSelectedCatechistIds([currentUser.id]);
+    }
+
+    const interval = setInterval(loadCatechists, 2000);
+
+    const handleFocus = () => {
+      loadCatechists();
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
