@@ -1,5 +1,5 @@
 {
-  "name": "copy-of-portal-catequese-digital---s.-simão",
+  "name": "portal-catequese-digital---s.-simão",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,7 +9,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.47.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
   },
