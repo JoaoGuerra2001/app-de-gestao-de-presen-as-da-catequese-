@@ -1,75 +1,51 @@
 
-import { 
-  User, UserRole, CatechesisClass, Student, Attendance, 
-  AttendanceStatus, Report, AppNotification, ReportFormat 
+import {
+  User, UserRole, CatechesisClass, Student, Attendance,
+  AttendanceStatus, Report, AppNotification, ReportFormat
 } from './types';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 class BackendService {
-  private storageKey = 'catequese_digital_db';
   private sessionKey = 'catequese_session';
-
-  private db: {
-    users: User[];
-    classes: CatechesisClass[];
-    students: Student[];
-    attendances: Attendance[];
-    reports: Report[];
-    notifications: AppNotification[];
-  };
+  private supabase: SupabaseClient;
 
   constructor() {
-    const saved = localStorage.getItem(this.storageKey);
-    if (saved) {
-      this.db = JSON.parse(saved);
-    } else {
-      this.db = {
-        users: [
-          { 
-            id: 'admin-1', 
-            name: 'Administrador Sistema', 
-            email: 'admin@paroquia.pt', 
-            password: '123', 
-            role: 'ADMIN', 
-            parish: 'S. Simão',
-            birthDate: '1985-05-20',
-            entryDate: '2010',
-            address: 'Rua Principal, S. Simão, Oiã',
-            formationLevel: 'Curso Geral de Catequistas',
-            bio: 'Responsável pela coordenação técnica da catequese digital na paróquia.',
-            photoUrl: 'https://picsum.photos/seed/admin/200'
-          }
-        ],
-        classes: [],
-        students: [],
-        attendances: [],
-        reports: [],
-        notifications: []
-      };
-      this.save();
-    }
-  }
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-  private save() {
-    localStorage.setItem(this.storageKey, JSON.stringify(this.db));
-  }
-
-  private generateId() {
-    return typeof crypto.randomUUID === 'function' 
-      ? crypto.randomUUID() 
-      : Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+    this.supabase = createClient(supabaseUrl, supabaseKey);
   }
 
   // --- AUTHENTICATION ---
-  
+
   async login(email: string, password: string): Promise<User | null> {
-    const user = this.db.users.find(u => u.email === email && u.password === password);
-    if (user) {
-      const sessionUser = { ...user };
-      delete sessionUser.password;
-      localStorage.setItem(this.sessionKey, JSON.stringify(sessionUser));
-      return sessionUser;
-    }
-    return null;
+    const { data, error } = await this.supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .eq('password', password)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    const user: User = {
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      password: data.password,
+      role: data.role as UserRole,
+      parish: data.parish,
+      birthDate: data.birth_date,
+      entryDate: data.entry_date,
+      address: data.address,
+      formationLevel: data.formation_level,
+      bio: data.bio,
+      photoUrl: data.photo_url
+    };
+
+    delete user.password;
+    localStorage.setItem(this.sessionKey, JSON.stringify(user));
+    return user;
   }
 
   getCurrentUser(): User | null {
@@ -88,169 +64,426 @@ class BackendService {
     if (!user) return action === 'ANY';
     if (user.role === 'ADMIN') return true;
     if (action === 'ADMIN_ONLY') return false;
-    return true; 
+    return true;
   }
 
   // --- USERS ---
 
   async createUser(data: Partial<User>): Promise<User> {
-    const newUser: User = {
-      id: this.generateId(),
-      name: data.name || '',
-      email: data.email || '',
-      password: data.password || 'mudar123',
-      role: data.role || 'CATECHIST',
-      parish: data.parish || 'S. Simão',
-      photoUrl: data.photoUrl || `https://picsum.photos/seed/${data.email}/200`,
-      birthDate: data.birthDate || '',
-      entryDate: data.entryDate || new Date().getFullYear().toString(),
-      address: data.address || '',
-      formationLevel: data.formationLevel || 'Curso Básico',
-      bio: data.bio || 'Novo catequista da Paróquia de S. Simão.'
+    const { data: newData, error } = await this.supabase
+      .from('users')
+      .insert([
+        {
+          name: data.name || '',
+          email: data.email || '',
+          password: data.password || 'mudar123',
+          role: data.role || 'CATECHIST',
+          parish: data.parish || 'S. Simão',
+          photo_url: data.photoUrl || `https://picsum.photos/seed/${data.email}/200`,
+          birth_date: data.birthDate || '',
+          entry_date: data.entryDate || new Date().getFullYear().toString(),
+          address: data.address || '',
+          formation_level: data.formationLevel || 'Curso Básico',
+          bio: data.bio || 'Novo catequista da Paróquia de S. Simão.'
+        }
+      ])
+      .select()
+      .single();
+
+    if (error || !newData) throw error || new Error('Failed to create user');
+
+    return {
+      id: newData.id,
+      name: newData.name,
+      email: newData.email,
+      password: newData.password,
+      role: newData.role,
+      parish: newData.parish,
+      birthDate: newData.birth_date,
+      entryDate: newData.entry_date,
+      address: newData.address,
+      formationLevel: newData.formation_level,
+      bio: newData.bio,
+      photoUrl: newData.photo_url
     };
-    this.db.users.push(newUser);
-    this.save();
-    return newUser;
   }
 
   async updateUser(id: string, data: Partial<User>): Promise<User> {
-    const index = this.db.users.findIndex(u => u.id === id);
-    if (index === -1) throw new Error('Utilizador não encontrado');
+    const { data: updated, error } = await this.supabase
+      .from('users')
+      .update({
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        parish: data.parish,
+        photo_url: data.photoUrl,
+        birth_date: data.birthDate,
+        entry_date: data.entryDate,
+        address: data.address,
+        formation_level: data.formationLevel,
+        bio: data.bio
+      })
+      .eq('id', id)
+      .select()
+      .single();
 
-    const updatedUser = { ...this.db.users[index], ...data };
-    this.db.users[index] = updatedUser;
-    this.save();
+    if (error || !updated) throw error || new Error('Utilizador não encontrado');
 
     const currentUser = this.getCurrentUser();
     if (currentUser && currentUser.id === id) {
-      const sessionUser = { ...updatedUser };
-      delete sessionUser.password;
+      const sessionUser = {
+        id: updated.id,
+        name: updated.name,
+        email: updated.email,
+        role: updated.role,
+        parish: updated.parish,
+        birthDate: updated.birth_date,
+        entryDate: updated.entry_date,
+        address: updated.address,
+        formationLevel: updated.formation_level,
+        bio: updated.bio,
+        photoUrl: updated.photo_url
+      };
       localStorage.setItem(this.sessionKey, JSON.stringify(sessionUser));
     }
 
-    return updatedUser;
+    return {
+      id: updated.id,
+      name: updated.name,
+      email: updated.email,
+      password: updated.password,
+      role: updated.role,
+      parish: updated.parish,
+      birthDate: updated.birth_date,
+      entryDate: updated.entry_date,
+      address: updated.address,
+      formationLevel: updated.formation_level,
+      bio: updated.bio,
+      photoUrl: updated.photo_url
+    };
   }
 
   async listUsers(): Promise<User[]> {
     if (!this.checkPermission('ADMIN_ONLY')) throw new Error('403 Forbidden');
-    return this.db.users.map(({ password, ...u }) => u as User);
+
+    const { data, error } = await this.supabase
+      .from('users')
+      .select('*');
+
+    if (error) throw error;
+
+    return data.map(u => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      password: u.password,
+      role: u.role,
+      parish: u.parish,
+      birthDate: u.birth_date,
+      entryDate: u.entry_date,
+      address: u.address,
+      formationLevel: u.formation_level,
+      bio: u.bio,
+      photoUrl: u.photo_url
+    }));
   }
 
   async listUsersForAssignment(): Promise<User[]> {
-    return this.db.users.map(({ password, ...u }) => u as User);
+    const { data, error } = await this.supabase
+      .from('users')
+      .select('*');
+
+    if (error) throw error;
+
+    return data.map(u => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      password: u.password,
+      role: u.role,
+      parish: u.parish,
+      birthDate: u.birth_date,
+      entryDate: u.entry_date,
+      address: u.address,
+      formationLevel: u.formation_level,
+      bio: u.bio,
+      photoUrl: u.photo_url
+    }));
   }
 
   // --- CLASSES ---
 
   async createClass(data: Partial<CatechesisClass>): Promise<CatechesisClass> {
     if (!this.getCurrentUser()) throw new Error('401 Unauthorized');
-    
-    const newClass: CatechesisClass = {
-      id: this.generateId(),
-      name: data.name || '',
-      yearCycle: data.yearCycle || '',
-      parish: data.parish || '',
-      room: data.room || '',
-      schedule: data.schedule || '',
-      assignedCatechistIds: data.assignedCatechistIds || [],
-      photoUrl: data.photoUrl || ''
-    };
 
-    if (newClass.assignedCatechistIds.length === 0) {
+    const { data: classData, error: classError } = await this.supabase
+      .from('classes')
+      .insert([
+        {
+          name: data.name || '',
+          year_cycle: data.yearCycle || '',
+          parish: data.parish || '',
+          room: data.room || '',
+          schedule: data.schedule || '',
+          photo_url: data.photoUrl || ''
+        }
+      ])
+      .select()
+      .single();
+
+    if (classError || !classData) throw classError || new Error('Failed to create class');
+
+    const catechistIds = data.assignedCatechistIds || [];
+    if (catechistIds.length === 0) {
       const user = this.getCurrentUser();
-      if (user) {
-        newClass.assignedCatechistIds.push(user.id);
-      }
+      if (user) catechistIds.push(user.id);
     }
 
-    this.db.classes.push(newClass);
-    this.save();
-    return newClass;
+    for (const catechistId of catechistIds) {
+      await this.supabase
+        .from('class_catechists')
+        .insert([{ class_id: classData.id, user_id: catechistId }])
+        .single();
+    }
+
+    return {
+      id: classData.id,
+      name: classData.name,
+      yearCycle: classData.year_cycle,
+      parish: classData.parish,
+      room: classData.room,
+      schedule: classData.schedule,
+      photoUrl: classData.photo_url,
+      assignedCatechistIds: catechistIds
+    };
   }
 
   async updateClass(id: string, data: Partial<CatechesisClass>): Promise<CatechesisClass> {
-    const index = this.db.classes.findIndex(c => c.id === id);
-    if (index === -1) throw new Error('Turma não encontrada');
-    
-    this.db.classes[index] = { ...this.db.classes[index], ...data };
-    this.save();
-    return this.db.classes[index];
+    const { data: updated, error } = await this.supabase
+      .from('classes')
+      .update({
+        name: data.name,
+        year_cycle: data.yearCycle,
+        parish: data.parish,
+        room: data.room,
+        schedule: data.schedule,
+        photo_url: data.photoUrl
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error || !updated) throw error || new Error('Turma não encontrada');
+
+    const { data: catechists } = await this.supabase
+      .from('class_catechists')
+      .select('user_id')
+      .eq('class_id', id);
+
+    return {
+      id: updated.id,
+      name: updated.name,
+      yearCycle: updated.year_cycle,
+      parish: updated.parish,
+      room: updated.room,
+      schedule: updated.schedule,
+      photoUrl: updated.photo_url,
+      assignedCatechistIds: (catechists || []).map(c => c.user_id)
+    };
   }
 
   async deleteClass(id: string): Promise<void> {
-    this.db.classes = this.db.classes.filter(c => c.id !== id);
-    this.db.students = this.db.students.filter(s => s.classId !== id);
-    this.db.attendances = this.db.attendances.filter(a => a.classId !== id);
-    this.save();
+    await this.supabase.from('classes').delete().eq('id', id);
   }
 
   async listClasses(): Promise<CatechesisClass[]> {
     const user = this.getCurrentUser();
     if (!user) return [];
-    if (user.role === 'ADMIN') return this.db.classes;
-    return this.db.classes.filter(c => c.assignedCatechistIds.includes(user.id));
+
+    const { data: allClasses, error } = await this.supabase
+      .from('classes')
+      .select('*');
+
+    if (error) throw error;
+
+    if (user.role === 'ADMIN') {
+      const classesWithCatechists = await Promise.all(
+        allClasses.map(async (cls) => {
+          const { data: catechists } = await this.supabase
+            .from('class_catechists')
+            .select('user_id')
+            .eq('class_id', cls.id);
+          return {
+            id: cls.id,
+            name: cls.name,
+            yearCycle: cls.year_cycle,
+            parish: cls.parish,
+            room: cls.room,
+            schedule: cls.schedule,
+            photoUrl: cls.photo_url,
+            assignedCatechistIds: (catechists || []).map(c => c.user_id)
+          };
+        })
+      );
+      return classesWithCatechists;
+    }
+
+    const { data: userClasses } = await this.supabase
+      .from('class_catechists')
+      .select('class_id')
+      .eq('user_id', user.id);
+
+    const userClassIds = (userClasses || []).map(c => c.class_id);
+
+    const classesWithCatechists = await Promise.all(
+      allClasses
+        .filter(cls => userClassIds.includes(cls.id))
+        .map(async (cls) => {
+          const { data: catechists } = await this.supabase
+            .from('class_catechists')
+            .select('user_id')
+            .eq('class_id', cls.id);
+          return {
+            id: cls.id,
+            name: cls.name,
+            yearCycle: cls.year_cycle,
+            parish: cls.parish,
+            room: cls.room,
+            schedule: cls.schedule,
+            photoUrl: cls.photo_url,
+            assignedCatechistIds: (catechists || []).map(c => c.user_id)
+          };
+        })
+    );
+    return classesWithCatechists;
   }
 
   async getCatechistsByClass(classId: string): Promise<User[]> {
-    const cls = this.db.classes.find(c => c.id === classId);
-    if (!cls) return [];
-    return this.db.users
-      .filter(u => cls.assignedCatechistIds.includes(u.id))
-      .map(({ password, ...u }) => u as User);
+    const { data: catechists, error } = await this.supabase
+      .from('class_catechists')
+      .select('user_id')
+      .eq('class_id', classId);
+
+    if (error) throw error;
+
+    const catechistIds = (catechists || []).map(c => c.user_id);
+
+    const { data: users } = await this.supabase
+      .from('users')
+      .select('*')
+      .in('id', catechistIds);
+
+    return (users || []).map(u => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      password: u.password,
+      role: u.role,
+      parish: u.parish,
+      birthDate: u.birth_date,
+      entryDate: u.entry_date,
+      address: u.address,
+      formationLevel: u.formation_level,
+      bio: u.bio,
+      photoUrl: u.photo_url
+    }));
   }
 
   async removeCatechistFromClass(classId: string, userId: string): Promise<void> {
-    const clsIndex = this.db.classes.findIndex(c => c.id === classId);
-    if (clsIndex === -1) return;
-    
-    this.db.classes[clsIndex].assignedCatechistIds = 
-      this.db.classes[clsIndex].assignedCatechistIds.filter(id => id !== userId);
-    this.save();
+    await this.supabase
+      .from('class_catechists')
+      .delete()
+      .eq('class_id', classId)
+      .eq('user_id', userId);
   }
 
   // --- STUDENTS ---
 
   async createStudent(data: Partial<Student>): Promise<Student> {
-    const newStudent: Student = {
-      id: this.generateId(),
-      classId: data.classId || '',
-      fullName: data.fullName || '',
-      birthDate: data.birthDate || '',
-      guardianName: data.guardianName || '',
-      guardianContact: data.guardianContact || '',
-      photoUrl: data.photoUrl || `https://picsum.photos/seed/${this.generateId()}/200`
+    const { data: student, error } = await this.supabase
+      .from('students')
+      .insert([
+        {
+          class_id: data.classId,
+          full_name: data.fullName || '',
+          birth_date: data.birthDate || '',
+          guardian_name: data.guardianName || '',
+          guardian_contact: data.guardianContact || '',
+          photo_url: data.photoUrl || `https://picsum.photos/seed/${Math.random()}/200`
+        }
+      ])
+      .select()
+      .single();
+
+    if (error || !student) throw error || new Error('Failed to create student');
+
+    return {
+      id: student.id,
+      classId: student.class_id,
+      fullName: student.full_name,
+      birthDate: student.birth_date,
+      guardianName: student.guardian_name,
+      guardianContact: student.guardian_contact,
+      photoUrl: student.photo_url
     };
-    this.db.students.push(newStudent);
-    this.save();
-    return newStudent;
   }
 
   async deleteStudent(id: string): Promise<void> {
-    this.db.students = this.db.students.filter(s => s.id !== id);
-    this.db.attendances = this.db.attendances.map(a => ({
-      ...a,
-      items: a.items.filter(item => item.studentId !== id)
-    }));
-    this.save();
+    await this.supabase.from('students').delete().eq('id', id);
   }
 
   async listStudents(classId: string): Promise<Student[]> {
-    return this.db.students.filter(s => s.classId === classId);
+    const { data, error } = await this.supabase
+      .from('students')
+      .select('*')
+      .eq('class_id', classId);
+
+    if (error) throw error;
+
+    return (data || []).map(s => ({
+      id: s.id,
+      classId: s.class_id,
+      fullName: s.full_name,
+      birthDate: s.birth_date,
+      guardianName: s.guardian_name,
+      guardianContact: s.guardian_contact,
+      photoUrl: s.photo_url
+    }));
   }
 
   async getStudentAttendanceHistory(studentId: string): Promise<{date: string, status: AttendanceStatus, className: string}[]> {
-    const history: {date: string, status: AttendanceStatus, className: string}[] = [];
-    
-    this.db.attendances.forEach(att => {
-      const item = att.items.find(i => i.studentId === studentId);
-      if (item) {
-        const cls = this.db.classes.find(c => c.id === att.classId);
-        history.push({
-          date: att.date,
-          status: item.status,
-          className: cls?.name || 'Turma Desconhecida'
-        });
-      }
+    const { data: attendanceItems, error } = await this.supabase
+      .from('attendance_items')
+      .select('attendance_id, status')
+      .eq('student_id', studentId);
+
+    if (error) throw error;
+
+    const attendanceIds = (attendanceItems || []).map(ai => ai.attendance_id);
+
+    if (attendanceIds.length === 0) return [];
+
+    const { data: attendances } = await this.supabase
+      .from('attendances')
+      .select('id, date, class_id')
+      .in('id', attendanceIds);
+
+    const classIds = [...new Set((attendances || []).map(a => a.class_id))];
+
+    const { data: classes } = await this.supabase
+      .from('classes')
+      .select('id, name')
+      .in('id', classIds);
+
+    const classMap = Object.fromEntries((classes || []).map(c => [c.id, c.name]));
+
+    const history = (attendanceItems || []).map(item => {
+      const attendance = (attendances || []).find(a => a.id === item.attendance_id);
+      return {
+        date: attendance?.date || '',
+        status: item.status as AttendanceStatus,
+        className: attendance ? classMap[attendance.class_id] || 'Turma Desconhecida' : 'Turma Desconhecida'
+      };
     });
 
     return history.sort((a, b) => b.date.localeCompare(a.date));
@@ -260,24 +493,47 @@ class BackendService {
 
   async markAttendance(classId: string, date: string, items: { studentId: string, status: AttendanceStatus, note?: string }[]): Promise<Attendance> {
     const user = this.getCurrentUser();
-    const existingIndex = this.db.attendances.findIndex(a => a.classId === classId && a.date === date);
-    
-    const attendance: Attendance = {
-      id: existingIndex >= 0 ? this.db.attendances[existingIndex].id : this.generateId(),
+
+    const { data: existingAtt } = await this.supabase
+      .from('attendances')
+      .select('id')
+      .eq('class_id', classId)
+      .eq('date', date)
+      .maybeSingle();
+
+    let attendanceId = existingAtt?.id;
+
+    if (!attendanceId) {
+      const { data: newAtt, error } = await this.supabase
+        .from('attendances')
+        .insert([{ class_id: classId, date, catechist_id: user?.id || 'unknown' }])
+        .select()
+        .single();
+
+      if (error || !newAtt) throw error || new Error('Failed to create attendance');
+      attendanceId = newAtt.id;
+    }
+
+    for (const item of items) {
+      await this.supabase
+        .from('attendance_items')
+        .upsert([
+          {
+            attendance_id: attendanceId,
+            student_id: item.studentId,
+            status: item.status,
+            note: item.note || null
+          }
+        ], { onConflict: 'attendance_id,student_id' });
+    }
+
+    return {
+      id: attendanceId,
       classId,
       date,
       catechistId: user?.id || 'unknown',
-      items: items.map(i => ({ studentId: i.studentId, status: i.status, note: i.note }))
+      items
     };
-
-    if (existingIndex >= 0) {
-      this.db.attendances[existingIndex] = attendance;
-    } else {
-      this.db.attendances.push(attendance);
-    }
-    
-    this.save();
-    return attendance;
   }
 }
 
