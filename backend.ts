@@ -211,6 +211,11 @@ class BackendService {
     }));
   }
 
+  async deleteUser(id: string): Promise<void> {
+    if (!this.checkPermission('ADMIN_ONLY')) throw new Error('403 Forbidden');
+    await this.supabase.from('users').delete().eq('id', id);
+  }
+
   // --- CLASSES ---
 
   async createClass(data: Partial<CatechesisClass>): Promise<CatechesisClass> {

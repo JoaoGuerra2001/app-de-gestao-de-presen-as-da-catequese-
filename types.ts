@@ -74,13 +74,14 @@ export interface AppNotification {
   read: boolean;
 }
 
-export type Screen = 
-  | 'LOGIN' 
-  | 'DASHBOARD' 
-  | 'CLASS_DETAILS' 
-  | 'ATTENDANCE_REGISTRY' 
-  | 'STUDENT_HISTORY' 
-  | 'PROFILE' 
-  | 'NEW_STUDENT' 
-  | 'NEW_CLASS' 
-  | 'NEW_USER';
+export type Screen =
+  | 'LOGIN'
+  | 'DASHBOARD'
+  | 'CLASS_DETAILS'
+  | 'ATTENDANCE_REGISTRY'
+  | 'STUDENT_HISTORY'
+  | 'PROFILE'
+  | 'NEW_STUDENT'
+  | 'NEW_CLASS'
+  | 'NEW_USER'
+  | 'MANAGE_USERS';

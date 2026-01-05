@@ -11,6 +11,7 @@ import ProfileView from './views/ProfileView';
 import NewStudentView from './views/NewStudentView';
 import NewClassView from './views/NewClassView';
 import NewUserView from './views/NewUserView';
+import ManageUsersView from './views/ManageUsersView';
 
 const App: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('LOGIN');
@@ -49,9 +50,9 @@ const App: React.FC = () => {
       case 'DASHBOARD':
         return <DashboardView user={user} onSelectClass={(c) => navigateTo('CLASS_DETAILS', c)} onProfile={() => navigateTo('PROFILE')} onNewClass={() => navigateTo('NEW_CLASS')} />;
       case 'CLASS_DETAILS':
-        return <ClassDetailsView 
-          classData={selectedClass} 
-          onBack={() => navigateTo('DASHBOARD')} 
+        return <ClassDetailsView
+          classData={selectedClass}
+          onBack={() => navigateTo('DASHBOARD')}
           onSelectStudent={(s) => navigateTo('STUDENT_HISTORY', s)}
           onAttendance={() => navigateTo('ATTENDANCE_REGISTRY')}
           onNewStudent={() => navigateTo('NEW_STUDENT')}
@@ -68,6 +69,8 @@ const App: React.FC = () => {
         return <NewClassView onBack={() => navigateTo('DASHBOARD')} />;
       case 'NEW_USER':
         return <NewUserView onBack={() => navigateTo(user ? 'DASHBOARD' : 'LOGIN')} />;
+      case 'MANAGE_USERS':
+        return <ManageUsersView onBack={() => navigateTo('DASHBOARD')} />;
       default:
         return <LoginView onLoginSuccess={handleLogin} onRegister={() => navigateTo('NEW_USER')} />;
     }
@@ -96,20 +99,29 @@ const App: React.FC = () => {
         </div>
 
         <nav className="flex-1 px-4 py-4 space-y-2">
-          <button 
+          <button
             onClick={() => navigateTo('DASHBOARD')}
             className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${currentScreen === 'DASHBOARD' || currentScreen === 'CLASS_DETAILS' ? 'bg-primary/10 text-primary font-bold' : 'text-gray-500 hover:bg-gray-50'}`}
           >
             <span className="material-symbols-outlined">school</span>
             {isSidebarOpen && <span>Turmas</span>}
           </button>
-          <button 
+          <button
             onClick={() => navigateTo('PROFILE')}
             className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${currentScreen === 'PROFILE' ? 'bg-primary/10 text-primary font-bold' : 'text-gray-500 hover:bg-gray-50'}`}
           >
             <span className="material-symbols-outlined">person</span>
             {isSidebarOpen && <span>O Meu Perfil</span>}
           </button>
+          {user?.role === 'ADMIN' && (
+            <button
+              onClick={() => navigateTo('MANAGE_USERS')}
+              className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${currentScreen === 'MANAGE_USERS' ? 'bg-primary/10 text-primary font-bold' : 'text-gray-500 hover:bg-gray-50'}`}
+            >
+              <span className="material-symbols-outlined">group</span>
+              {isSidebarOpen && <span>Gerir Catequistas</span>}
+            </button>
+          )}
           <button className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-gray-400 opacity-50 cursor-not-allowed">
             <span className="material-symbols-outlined">analytics</span>
             {isSidebarOpen && <span>Relatórios</span>}
