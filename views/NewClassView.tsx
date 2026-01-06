@@ -226,6 +226,11 @@ const NewClassView: React.FC<Props> = ({ onBack }) => {
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Dia da Semana</p>
                 <select value={day} onChange={(e) => setDay(e.target.value)} className="w-full border-none p-0 text-base font-medium focus:ring-0 bg-transparent appearance-none font-bold">
+                  <option value="Segunda-feira">Segunda-feira</option>
+                  <option value="Terça-feira">Terça-feira</option>
+                  <option value="Quarta-feira">Quarta-feira</option>
+                  <option value="Quinta-feira">Quinta-feira</option>
+                  <option value="Sexta-feira">Sexta-feira</option>
                   <option value="Sábado">Sábado</option>
                   <option value="Domingo">Domingo</option>
                 </select>
