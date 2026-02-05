@@ -4,16 +4,21 @@ import {
   AttendanceStatus, Report, AppNotification, ReportFormat
 } from './types';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { initializeSync } from './services/syncService';
 
 class BackendService {
   private sessionKey = 'catequese_session';
-  private supabase: SupabaseClient;
+  supabase: SupabaseClient;
 
   constructor() {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
     const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
     this.supabase = createClient(supabaseUrl, supabaseKey);
+
+    setTimeout(() => {
+      initializeSync(this.supabase).catch(console.error);
+    }, 1000);
   }
 
   // --- AUTHENTICATION ---

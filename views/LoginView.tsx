@@ -30,9 +30,9 @@ const LoginView: React.FC<Props> = ({ onLoginSuccess, onRegister }) => {
     <div className="flex flex-col h-full bg-white overflow-y-auto no-scrollbar">
       <div className="flex flex-col items-center pt-10 pb-4 px-8 text-center">
         <div className="w-36 h-36 mb-4 relative">
-          <img 
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAtYa9GFhM1SkofYfnEhSa1z9AU467Jo5KnhAuEaq-NmKBe0xcUUB_U6CdQyiEi19pf_gdRL82IV61Vj1PpRNcnL_6pkJeEHI_3RC9bo_Rt40nlAPsZEg_uEUXjY-uheaGBed8edtyd0-hnxpdn0o6uoALexVSSatYv-aOCrNrZpQD47FiQX3MGoUcFMegWCIl31zJuZ_CvwlSA9tBLh8FW5jSuk1yvJ3fIYVhsI2fSFJtGZYDy84oACvd_kMlmDwq4hVZjI8C_NR-9" 
-            alt="Logo Paróquia" 
+          <img
+            src="/img_20260205_205522.jpg"
+            alt="Logo Paróquia"
             className="w-full h-full object-contain"
           />
         </div>
