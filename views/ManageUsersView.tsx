@@ -46,7 +46,7 @@ const ManageUsersView: React.FC<Props> = ({ onBack }) => {
   const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <div className="flex flex-col h-full bg-background-light overflow-y-auto no-scrollbar">

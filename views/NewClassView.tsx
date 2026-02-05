@@ -50,10 +50,10 @@ const NewClassView: React.FC<Props> = ({ onBack }) => {
     );
   };
 
-  const filteredCatechists = availableCatechists.filter(cat => 
+  const filteredCatechists = availableCatechists.filter(cat =>
     cat.name.toLowerCase().includes(catechistSearch.toLowerCase()) ||
     cat.email.toLowerCase().includes(catechistSearch.toLowerCase())
-  );
+  ).sort((a, b) => a.name.localeCompare(b.name));
 
   const handleSave = async () => {
     if (!name || !room) {
