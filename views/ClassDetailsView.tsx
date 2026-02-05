@@ -73,9 +73,9 @@ const ClassDetailsView: React.FC<Props> = ({ classData, onBack, onSelectStudent,
     }
   };
 
-  const filteredStudents = students.filter(s => 
-    s.fullName.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredStudents = students
+    .filter(s => s.fullName.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => a.fullName.localeCompare(b.fullName));
 
   const filteredCatechists = catechists.filter(c => 
     c.name.toLowerCase().includes(catechistSearch.toLowerCase())

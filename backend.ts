@@ -433,6 +433,33 @@ class BackendService {
     };
   }
 
+  async updateStudent(id: string, data: Partial<Student>): Promise<Student> {
+    const { data: updated, error } = await this.supabase
+      .from('students')
+      .update({
+        full_name: data.fullName,
+        birth_date: data.birthDate,
+        guardian_name: data.guardianName,
+        guardian_contact: data.guardianContact,
+        photo_url: data.photoUrl
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error || !updated) throw error || new Error('Aluno não encontrado');
+
+    return {
+      id: updated.id,
+      classId: updated.class_id,
+      fullName: updated.full_name,
+      birthDate: updated.birth_date,
+      guardianName: updated.guardian_name,
+      guardianContact: updated.guardian_contact,
+      photoUrl: updated.photo_url
+    };
+  }
+
   async deleteStudent(id: string): Promise<void> {
     await this.supabase.from('students').delete().eq('id', id);
   }

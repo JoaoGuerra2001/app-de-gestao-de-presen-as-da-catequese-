@@ -18,6 +18,9 @@ const StudentHistoryView: React.FC<Props> = ({ student, onBack }) => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'ALL' | AttendanceStatus>('ALL');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<Partial<Student>>({});
+  const [saving, setSaving] = useState(false);
   
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
@@ -29,6 +32,7 @@ const StudentHistoryView: React.FC<Props> = ({ student, onBack }) => {
         setHistory(data);
         setLoading(false);
       });
+      setEditData(student);
     }
   }, [student]);
 
@@ -68,6 +72,19 @@ const StudentHistoryView: React.FC<Props> = ({ student, onBack }) => {
   const formatBirthDate = (dateStr?: string) => {
     if (!dateStr) return 'Não definida';
     return new Date(dateStr).toLocaleDateString('pt-PT');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!student) return;
+    setSaving(true);
+    try {
+      await backend.updateStudent(student.id, editData);
+      setIsEditing(false);
+    } catch (err) {
+      alert('Erro ao guardar as alterações.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const getStatusConfig = (status: AttendanceStatus) => {
@@ -131,38 +148,76 @@ const StudentHistoryView: React.FC<Props> = ({ student, onBack }) => {
 
         {/* INFORMAÇÕES DO CATEQUIZANDO */}
         <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100 space-y-3">
-          <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5 mb-2">
-            <span className="material-symbols-outlined text-[14px]">info</span>
-            Informações do Catequizando
-          </h4>
-          
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[14px]">info</span>
+              Informações do Catequizando
+            </h4>
+            <button
+              onClick={() => isEditing ? handleSaveEdit() : setIsEditing(true)}
+              disabled={saving}
+              className="text-[10px] font-bold text-primary bg-white px-2.5 py-1 rounded-lg hover:bg-primary/5 active:scale-95 transition-all disabled:opacity-50"
+            >
+              {saving ? '...' : isEditing ? 'Guardar' : 'Editar'}
+            </button>
+          </div>
+
           <div className="flex items-center gap-3">
-            <div className="size-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-blue-500">
+            <div className="size-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-blue-500 shrink-0">
               <span className="material-symbols-outlined text-[18px]">cake</span>
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-[9px] font-bold text-gray-400 uppercase leading-none">Nascimento</p>
-              <p className="text-xs font-bold text-text-main">{formatBirthDate(student?.birthDate)}</p>
+              {isEditing ? (
+                <input
+                  type="date"
+                  value={editData.birthDate || ''}
+                  onChange={(e) => setEditData({...editData, birthDate: e.target.value})}
+                  className="w-full text-xs font-bold border-none p-0 focus:ring-0 bg-transparent"
+                />
+              ) : (
+                <p className="text-xs font-bold text-text-main">{formatBirthDate(editData?.birthDate)}</p>
+              )}
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="size-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-purple-500">
+            <div className="size-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-purple-500 shrink-0">
               <span className="material-symbols-outlined text-[18px]">supervisor_account</span>
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-[9px] font-bold text-gray-400 uppercase leading-none">Enc. Educação</p>
-              <p className="text-xs font-bold text-text-main">{student?.guardianName || 'Não definido'}</p>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editData.guardianName || ''}
+                  onChange={(e) => setEditData({...editData, guardianName: e.target.value})}
+                  placeholder="Nome"
+                  className="w-full text-xs font-bold border-none p-0 focus:ring-0 bg-transparent placeholder:text-gray-300"
+                />
+              ) : (
+                <p className="text-xs font-bold text-text-main">{editData?.guardianName || 'Não definido'}</p>
+              )}
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="size-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-emerald-500">
+            <div className="size-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-emerald-500 shrink-0">
               <span className="material-symbols-outlined text-[18px]">call</span>
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-[9px] font-bold text-gray-400 uppercase leading-none">Contacto Emergência</p>
-              <p className="text-xs font-bold text-text-main">{student?.guardianContact || 'Não definido'}</p>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editData.guardianContact || ''}
+                  onChange={(e) => setEditData({...editData, guardianContact: e.target.value})}
+                  placeholder="Contacto"
+                  className="w-full text-xs font-bold border-none p-0 focus:ring-0 bg-transparent placeholder:text-gray-300"
+                />
+              ) : (
+                <p className="text-xs font-bold text-text-main">{editData?.guardianContact || 'Não definido'}</p>
+              )}
             </div>
           </div>
         </div>
